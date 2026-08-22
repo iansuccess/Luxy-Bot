@@ -1,0 +1,16 @@
+{
+  "name": "discord-bot",
+  "version": "1.0.0",
+  "description": "Dr-blaze",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "discord.js": "^14.27.0",
+    "express": "^4.18.2"
+  },
+  "engines": {
+    "node": ">=16.9.0"
+  }
+}
