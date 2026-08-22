@@ -615,4 +615,4 @@ client.on('voiceStateUpdate', async (oldState, newState) => {
 
 
 
-client.login(BOT_TOKEN);
+client.login(TOKEN);
