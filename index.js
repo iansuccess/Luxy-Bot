@@ -468,18 +468,38 @@ client.on('guildCreate', async guild => {
       inviter = '⤷ Missing View Audit Log permission';
     }
 
+    const verificationLevels = {
+      0: '⤷ None',
+      1: '⤷ Low',
+      2: '⤷ Medium',
+      3: '⤷ High',
+      4: '⤷ Very High'
+    };
+
+    const contentFilterLevels = {
+      0: '⤷ Disabled',
+      1: '⤷ Members Without Roles',
+      2: '⤷ All Members'
+    };
+
     const embed = {
-      color: 0x2ecc71,
+      color: 0x7700ff,
       title: 'Bot Added to New Server',
+      thumbnail: { url: guild.iconURL({ dynamic: true, size: 1024 }) || 'https://cdn.discordapp.com/embed/avatars/0.png' },
       fields: [
         { name: 'Server Name', value: `⤷ ${guild.name}`, inline: true },
         { name: 'Server ID', value: `⤷ ${guild.id}`, inline: true },
         { name: 'Added By', value: inviter, inline: false },
-        { name: 'Member Count', value: `⤷ ${guild.memberCount}`, inline: true },
         { name: 'Server Owner', value: `⤷ <@${guild.ownerId}>\n⤷ Owner ID: ${guild.ownerId}`, inline: true },
+        { name: 'Member Count', value: `⤷ ${guild.memberCount || 'Unknown'}`, inline: true },
+        { name: 'Boost Level', value: `⤷ Level ${guild.premiumTier || 0}`, inline: true },
+        { name: 'Verification Level', value: verificationLevels[guild.verification_level] || '⤷ Unknown', inline: true },
+        { name: 'Content Filter', value: contentFilterLevels[guild.explicit_content_filter] || '⤷ Unknown', inline: true },
+        { name: 'Locale / Region', value: `⤷ ${guild.preferred_locale || 'Unknown'}`, inline: true },
         { name: 'Server Created', value: `⤷ <t:${Math.floor(guild.createdTimestamp / 1000)}:F>`, inline: false }
       ],
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      footer: { text: `Total Servers: ${client.guilds.cache.size}` }
     };
 
     await fetch(WEBHOOK_URL, {
@@ -488,7 +508,7 @@ client.on('guildCreate', async guild => {
       body: JSON.stringify({ embeds: [embed] })
     });
 
-    console.log(`[GUILD JOIN] ${guild.name} (${guild.id})`);
+    console.log(`[GUILD JOIN] ${guild.name} (${guild.id}) | Total: ${client.guilds.cache.size}`);
   } catch (err) {
     console.error('[guildCreate Error]', err);
   }
@@ -500,15 +520,17 @@ client.on('guildDelete', async guild => {
     const WEBHOOK_URL = 'https://discord.com/api/webhooks/1541034930941853756/VZXaw7M5k2x0c3UbiDiAL2EIGOZGfgG4EPOV62KGbcDmIbe-m49JG4pPQxnXHYwfWote';
 
     const embed = {
-      color: 0xe74c3c,
+      color: 0x7700ff,
       title: 'Bot Removed from Server',
+      thumbnail: { url: guild.iconURL({ dynamic: true, size: 1024 }) || 'https://cdn.discordapp.com/embed/avatars/0.png' },
       fields: [
         { name: 'Server Name', value: `⤷ ${guild.name || 'Unknown Server'}`, inline: true },
         { name: 'Server ID', value: `⤷ ${guild.id}`, inline: true },
         { name: 'Member Count', value: `⤷ ${guild.memberCount || 'Unknown'}`, inline: true },
         { name: 'Removed At', value: `⤷ <t:${Math.floor(Date.now() / 1000)}:F>`, inline: false }
       ],
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      footer: { text: `Total Servers: ${client.guilds.cache.size}` }
     };
 
     await fetch(WEBHOOK_URL, {
@@ -517,10 +539,9 @@ client.on('guildDelete', async guild => {
       body: JSON.stringify({ embeds: [embed] })
     });
 
-    console.log(`[GUILD LEAVE] ${guild.name || 'Unknown Server'} (${guild.id})`);
+    console.log(`[GUILD LEAVE] ${guild.name || 'Unknown Server'} (${guild.id}) | Total: ${client.guilds.cache.size}`);
   } catch (err) {
     console.error('[guildDelete Error]', err);
   }
 });
-
 client.login(TOKEN);
