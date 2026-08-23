@@ -20,6 +20,7 @@ const voiceManager = require('./voiceManager.js');
 const serverInfoCmd = require('./serverinfo.js');
 const roleCmd = require('./role.js');
 const helpCmd = require('./help.js');
+const { fetch } = require('undici');
 const TOKEN = process.env.DISCORD_TOKEN;
 const BOT_OWNER_ID = '1531611262159687820';
 const BOT_ID = '1535479327234461756';
