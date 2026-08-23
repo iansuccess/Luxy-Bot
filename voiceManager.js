@@ -1,26 +1,38 @@
-const { ChannelType, PermissionsBitField, ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder, UserSelectMenuBuilder } = require('discord.js');
+const { ChannelType, PermissionsBitField, ActionRowBuilder, UserSelectMenuBuilder } = require('discord.js');
+const fs = require('fs');
+const path = require('path');
 
-function containsLink(text) {
-    const urlPattern = /(https?:\/\/[^\s]+)/g;
-    return urlPattern.test(text);
+const CONFIG_PATH = path.join(__dirname, 'data', 'vcconfig.json');
+
+// ✅ Kunin ang config NG SERVER LANG NA ITO
+function getServerConfig(guildId) {
+    try {
+        if (!fs.existsSync(CONFIG_PATH)) return null;
+        const allConfig = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf-8'));
+        return allConfig[guildId] || null;
+    } catch (e) {
+        return null;
+    }
 }
 
 module.exports = {
-    async handleVoiceStateUpdate(oldState, newState, config) {
-        if (!config.vcSetup || !config.vcSetup.categoryId || !config.vcSetup.triggerId) return;
-
+    async handleVoiceStateUpdate(oldState, newState) {
         const guild = newState.guild || oldState.guild;
         if (!guild) return;
 
-        const category = guild.channels.cache.get(config.vcSetup.categoryId);
-        const triggerVC = guild.channels.cache.get(config.vcSetup.triggerId);
+        // ✅ KUNIN ANG CONFIG NG SERVER NA ITO LANG
+        const config = getServerConfig(guild.id);
+        if (!config || !config.categoryId || !config.triggerId) return;
+
+        const category = guild.channels.cache.get(config.categoryId);
+        const triggerVC = guild.channels.cache.get(config.triggerId);
         if (!category || !triggerVC) {
-            console.log('[VC] Missing category or trigger channel!');
+            console.log(`[VC] Server ${guild.id}: Missing category or trigger channel`);
             return;
         }
 
-        // 1. User joins "Click Me" → Gumawa ng bagong VC
-        if (newState.channelId === config.vcSetup.triggerId && oldState.channelId !== newState.channelId) {
+        // ✅ User joins "Click Me" → Gumawa ng bagong channel
+        if (newState.channelId === config.triggerId && oldState.channelId !== newState.channelId) {
             const channel = await guild.channels.create({
                 name: `${newState.member.user.username}'s VC`,
                 type: ChannelType.GuildVoice,
@@ -39,26 +51,30 @@ module.exports = {
             await newState.setChannel(channel);
         }
 
-        // 2. Delete empty channels — may 3-second delay para hindi madali mabura
+        // ✅ Burahin ang walang tao — HUWAG KASAMA ANG CLICK ME!
         if (oldState.channelId &&
-            oldState.channelId !== config.vcSetup.triggerId &&
-            oldState.channelId !== config.vcSetup.editChannelId) {
+            oldState.channelId !== config.triggerId &&
+            oldState.channelId !== config.editChannelId) {
 
             const channel = guild.channels.cache.get(oldState.channelId);
-            if (channel && channel.parentId === config.vcSetup.categoryId) {
+            if (channel && channel.parentId === config.categoryId) {
                 setTimeout(async () => {
-                    if (channel.members.size === 0) {
-                        await channel.delete().catch(err => console.log('[VC] Delete error:', err.message));
+                    // ✅ DOBLE SIGURADO: HUWAG BURAHIN ANG CLICK ME!
+                    if (channel.members.size === 0 && channel.id !== config.triggerId) {
+                        await channel.delete().catch(err => console.log('[VC] Delete skipped:', err.message));
                     }
-                }, 3000);
+                }, 5000); // ⏳ 5 segundong hintay
             }
         }
     },
 
-    async handleButtonInteraction(interaction, config) {
+    async handleButtonInteraction(interaction) {
+        const config = getServerConfig(interaction.guild.id);
+        if (!config) return interaction.reply({ content: 'Voice system not setup yet.', ephemeral: true });
+
         try {
             const memberChannel = interaction.member?.voice?.channel;
-            if (!memberChannel || memberChannel.parentId !== config.vcSetup.categoryId || memberChannel.id === config.vcSetup.triggerId) {
+            if (!memberChannel || !config || memberChannel.parentId !== config.categoryId || memberChannel.id === config.triggerId) {
                 return interaction.reply({ content: 'You must be in a managed voice channel to use these controls.', ephemeral: true });
             }
 
@@ -104,9 +120,12 @@ module.exports = {
         }
     },
 
-    async handleSelectMenuInteraction(interaction, config) {
+    async handleSelectMenuInteraction(interaction) {
+        const config = getServerConfig(interaction.guild.id);
+        if (!config) return interaction.reply({ content: '<a:wrong1:1539239292394803311> Voice system not setup yet.', ephemeral: true });
+
         const memberChannel = interaction.member?.voice?.channel;
-        if (!memberChannel || memberChannel.parentId !== config.vcSetup.categoryId) {
+        if (!memberChannel || memberChannel.parentId !== config.categoryId) {
             return interaction.reply({ content: '<a:wrong1:1539239292394803311> You must be in your voice channel first.', ephemeral: true });
         }
         const selectedUser = interaction.users.first();
@@ -145,9 +164,5 @@ module.exports = {
                 ephemeral: true
             });
         }
-    },
-
-    async handleModalInteraction(interaction, config) {
-        console.log('Modal:', interaction.customId);
     }
 };
