@@ -3,9 +3,6 @@ const {
     ChannelType, ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, TextInputBuilder, TextInputStyle
 } = require('discord.js');
 const express = require('express');
-
-
-
 const createChannelCmd = require('./createchannel.js');
 const vcStats = require('./vcstats.js');
 const avatarCmd = require('./avatar.js');
@@ -23,31 +20,19 @@ const voiceManager = require('./voiceManager.js');
 const serverInfoCmd = require('./serverinfo.js');
 const roleCmd = require('./role.js');
 const helpCmd = require('./help.js');
-
-
-
 const TOKEN = process.env.DISCORD_TOKEN;
 const BOT_OWNER_ID = '1531611262159687820';
 const BOT_ID = '1535479327234461756';
-
-
-
 const app = express();
 const PORT = process.env.PORT || 3000;
 app.get('/', (req, res) => res.send('✅ $$ is alive'));
 app.listen(PORT, () => console.log('✅ Keep-alive server active'));
-
-
-
 const purpleEmbed = (title, description) => new EmbedBuilder().setColor('#7700ff').setTitle(title).setDescription(description).setTimestamp();
 const redEmbed = (title, description) => new EmbedBuilder().setColor('#ff0044').setTitle(title).setDescription(description).setTimestamp();
 const greenEmbed = (title, description) => new EmbedBuilder().setColor('#00ff66').setTitle(title).setDescription(description).setTimestamp();
 const ARROW = '⤷';
 const EMOJI_WRONG = '<a:wrong1:1539239292394803311>';
 const EMOJI_VERIFY = '<a:verify:1539238356003848344>';
-
-
-
 const client = new Client({
     intents: [
         GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers, GatewayIntentBits.GuildMessages,
@@ -55,9 +40,6 @@ const client = new Client({
         GatewayIntentBits.GuildMessageReactions
     ]
 });
-
-
-
 const fs = require('fs');
 const path = require('path');
 const configDataPath = path.join(__dirname, 'data', 'autojoin.json');
@@ -78,9 +60,6 @@ if (fs.existsSync(logConfigPath)) {
         console.error('Error loading log config', e);
     }
 }
-
-
-
 const whitelistDataPath = path.join(__dirname, 'data', 'whitelist.json');
 let savedWhitelist = { antiSpam: [], antiLink: [], protection: [], kick: [], bypassAll: [], messageCmd: [] };
 if (fs.existsSync(whitelistDataPath)) {
@@ -94,19 +73,7 @@ function saveWhitelist(whitelist) {
     fs.writeFileSync(whitelistDataPath, JSON.stringify(whitelist, null, 2));
 }
 
-
-
-const vcConfigPath = path.join(__dirname, 'data', 'vcconfig.json');
-let savedVCSetup = { categoryId: null, triggerId: null, editChannelId: null };
-if (fs.existsSync(vcConfigPath)) {
-    try {
-        savedVCSetup = JSON.parse(fs.readFileSync(vcConfigPath, 'utf-8'));
-    } catch (e) {
-        console.error('Error loading vc config', e);
-    }
-}
-
-
+// ✅ TINANGGAL NA: Lumang vcConfigPath at savedVCSetup — hindi na kailangan
 
 let config = {
     antiSpam: false, antiLink: false, spamLimit: 5, spamTime: 5000,
@@ -121,16 +88,10 @@ let config = {
         antiKick: true
     },
     logsChannel: savedLogsChannel,
-    vcSetup: savedVCSetup,
+    // ✅ TINANGGAL NA: vcSetup: savedVCSetup
     autoJoinRole: savedAutoJoinRole
 };
-
-
-
 let isProcessing = false;
-
-
-
 const commands = [
     new SlashCommandBuilder().setName('setup').setDescription('Setup main server protection').setDefaultMemberPermissions(PermissionsBitField.Flags.ManageGuild).setDMPermission(false),
     new SlashCommandBuilder().setName('reset').setDescription('🔄 Reset all bot settings').setDefaultMemberPermissions(PermissionsBitField.Flags.ManageGuild).setDMPermission(false),
@@ -171,13 +132,7 @@ const commands = [
     new SlashCommandBuilder().setName('autojoin').setDescription('Set auto-join role for new members').setDefaultMemberPermissions(PermissionsBitField.Flags.ManageGuild)
     .addRoleOption(o => o.setName('role').setDescription('Role to auto-assign').setRequired(true)),
 ];
-
-
-
 client.once('ready', async () => { console.log(`$$ | Online & Ready!`); await client.application.commands.set(commands); console.log('✅ All commands are ready to use!'); });
-
-
-
 client.on('interactionCreate', async interaction => {
     // ✅ HANDLE MODAL — BOX PARA SA MESSAGE
     if (interaction.isModalSubmit()) {
@@ -185,60 +140,35 @@ client.on('interactionCreate', async interaction => {
         const handled = await messageCmd.handleModalSubmit(interaction, BOT_OWNER_ID, redEmbed, greenEmbed, purpleEmbed, config);
         if (handled) return;
     }
-
-
-
+    // ✅ TINANGGAL NA: config — wala nang parameter na ipinapasa sa voiceManager
     if (interaction.isUserSelectMenu()) {
-        return voiceManager.handleSelectMenuInteraction(interaction, config);
+        return voiceManager.handleSelectMenuInteraction(interaction);
     }
-
-
-
     if (!interaction.isChatInputCommand() && !interaction.isButton()) return;
-
-
-
+    // ✅ TINANGGAL NA: config
     if (interaction.isButton() && ['lock_vc', 'unlock_vc', 'trust_user', 'untrust_user'].includes(interaction.customId)) {
-        return voiceManager.handleButtonInteraction(interaction, config);
+        return voiceManager.handleButtonInteraction(interaction);
     }
-
-
-
-    if (interaction.isModalSubmit() && ['trust_modal'].includes(interaction.customId)) {
-        return voiceManager.handleModalInteraction(interaction, config);
-    }
-
-
-
+    // ✅ TINANGGAL NA BUONG LINYA: trust_modal — hindi na kailangan
     try {
         const cmd = interaction.commandName;
         const guild = interaction.guild;
         const member = interaction.member;
-
         // ✅ HELPER: Check kung BOT OWNER o SERVER OWNER
         const isBotOwner = interaction.user.id === BOT_OWNER_ID;
         const isServerOwner = guild && interaction.user.id === guild.ownerId;
         const isOwner = isBotOwner || isServerOwner;
-
-
-
         if (cmd === 'setup') {
             if (!member.permissions.has(PermissionsBitField.Flags.ManageGuild)) return interaction.reply({embeds:[purpleEmbed(`${EMOJI_WRONG} No Permission`,ARROW+' You need **Manage Server** permission to use this.')],ephemeral:true});
             config.antiSpam = true; config.antiLink = true;
             return interaction.reply({embeds:[purpleEmbed(`${EMOJI_VERIFY} Setup Complete`, `\`\`\`\n${ARROW} Main protection has been enabled.\n${ARROW} Anti Link System\n${ARROW} Anti Spam System\n${ARROW} Avatar Viewer System\n${ARROW} Avatar Viewer System (FOR OWNER AND ADMIN)\n${ARROW} Banner Viewer System\n${ARROW} Whitelist System\n\`\`\``)]});
         }
-
-
-
         if (cmd === 'reset') {
             if (!member.permissions.has(PermissionsBitField.Flags.ManageGuild)) return interaction.reply({embeds:[purpleEmbed(`${EMOJI_WRONG} No Permission`, ARROW+' Only Administrators or the Server Owner can use this.')],ephemeral:true});
             const confirmBtn = new ButtonBuilder().setCustomId('confirm_reset').setLabel(`${EMOJI_VERIFY} Approve & Reset`).setStyle(ButtonStyle.Success);
             const cancelBtn = new ButtonBuilder().setCustomId('cancel_reset').setLabel(`${EMOJI_WRONG} Cancel`).setStyle(ButtonStyle.Danger);
             return interaction.reply({embeds:[purpleEmbed('⚠️ CONFIRMATION REQUIRED', `**${interaction.user.tag}** wants to reset all bot settings.\n\n${ARROW} **Waiting for Server Owner approval...**`)],components:[new ActionRowBuilder().addComponents(confirmBtn,cancelBtn)]});
         }
-
-
-
         if (interaction.isButton()) {
             if (interaction.customId === 'confirm_reset') {
                 if (!isOwner) {
@@ -252,28 +182,20 @@ client.on('interactionCreate', async interaction => {
                 await interaction.update({embeds:[purpleEmbed(`${EMOJI_VERIFY} Reset Cancelled`, ARROW+' No changes made.')],components:[]});
                 return;
             }
-
-
-
             if (interaction.customId.startsWith('approve_') || interaction.customId.startsWith('cancel_')) {
                 const isApprove = interaction.customId.startsWith('approve_');
                 const requestId = interaction.customId.slice(isApprove ? 8 : 7);
                 const req = pendingRequests.get(requestId);
-
                 // ✅ Check kung BOT OWNER o yung SERVER OWNER na NA-SAVE sa request
                 const canApprove = isBotOwner || (req && req.guildOwnerId && interaction.user.id === req.guildOwnerId);
-
                 if (!req || !req.active) {
                     return interaction.reply({ ephemeral: true, content: `${EMOJI_VERIFY} Already processed or invalid request.` });
                 }
-
                 if (!canApprove) {
                     return interaction.reply({ ephemeral: true, content: `${EMOJI_WRONG} Only the Server Owner or Bot Owner can approve this action.` });
                 }
-
                 req.active = false;
                 pendingRequests.delete(requestId);
-
                 try {
                     detection.isBotActing = true;
                     if (isApprove) {
@@ -294,25 +216,16 @@ client.on('interactionCreate', async interaction => {
                 return;
             }
         }
-
-
-
         if (cmd === 'antispam') {
             if (!member.permissions.has(PermissionsBitField.Flags.ManageGuild)) return interaction.reply({embeds:[purpleEmbed(`${EMOJI_WRONG} No Permission`,ARROW+' You need **Manage Server** permission.')],ephemeral:true});
             config.antiSpam = interaction.options.getBoolean('status');
             return interaction.reply({embeds:[purpleEmbed(`${EMOJI_VERIFY} Anti-Spam`, `${ARROW} Anti-spam: **${config.antiSpam ? ARROW+' ENABLED' : 'DISABLED'}**`)]});
         }
-
-
-
         if (cmd === 'antilink') {
             if (!member.permissions.has(PermissionsBitField.Flags.ManageGuild)) return interaction.reply({embeds:[purpleEmbed(`${EMOJI_WRONG} No Permission`, ARROW+' You need **Manage Server** permission.')],ephemeral:true});
             config.antiLink = interaction.options.getBoolean('status');
             return interaction.reply({embeds:[purpleEmbed(`${EMOJI_VERIFY} Anti-Link`, `${ARROW} Link blocking: **${config.antiLink ? 'ENABLED' : 'DISABLED'}**`)]});
         }
-
-
-
         if (cmd === 'whitelist') {
             if (!isServerOwner && !isBotOwner) return interaction.reply({embeds:[purpleEmbed(`${EMOJI_WRONG} No Permission`, ARROW+' Only the Server Owner can modify whitelist settings.')],ephemeral:true});
             const action = interaction.options.getString('action');
@@ -321,9 +234,7 @@ client.on('interactionCreate', async interaction => {
             
             const validFeatures = ['antiSpam','antiLink','protection','kick','bypassAll', 'deleteChannel', 'deleteRole', 'createChannel', 'createRole', 'bypassGiveAdmin', 'messageCmd'];
             if (!validFeatures.includes(feature)) return interaction.reply({embeds:[purpleEmbed(`${EMOJI_WRONG} Invalid Feature`, ARROW+' Choose valid protection feature.')],ephemeral:true});
-
             if (!config.whitelist[feature]) config.whitelist[feature] = [];
-
             if (action === 'add') {
                 if (!config.whitelist[feature].includes(targetRole.id)) {
                     config.whitelist[feature].push(targetRole.id);
@@ -336,9 +247,6 @@ client.on('interactionCreate', async interaction => {
                 return interaction.reply({embeds:[purpleEmbed(`${EMOJI_VERIFY} Removed from Whitelist`, `${ARROW} Role **${targetRole.name}** → removed from **${feature}** whitelist`)]});
             }
         }
-
-
-
         if (cmd === 'timeout') return timeoutCmd.executeTimeout(interaction, config);
         if (cmd === 'autojoin') return autoJoinCmd.execute(interaction, config);
         if (cmd === 'untimeout') return timeoutCmd.executeUntimeout(interaction, config);
@@ -346,10 +254,8 @@ client.on('interactionCreate', async interaction => {
         if (cmd === 'jail') return jailCmd.executeJail(interaction, config);
         if (cmd === 'unjail') return jailCmd.executeUnjail(interaction, config);
         if (cmd === 'setuplog') return setupLogCmd.executeSetupLog(interaction, config);
-        if (cmd === 'setupvc') return setupVCCmd.executeSetupVC(interaction, config);
-
-
-
+        // ✅ TINANGGAL NA: config — wala nang parameter
+        if (cmd === 'setupvc') return setupVCCmd.executeSetupVC(interaction);
         if (cmd === 'createchannel') return createChannelCmd.execute(interaction,BOT_OWNER_ID,isProcessing,purpleEmbed,purpleEmbed);
         if (cmd === 'message') return messageCmd.executeMessage(interaction,BOT_OWNER_ID,redEmbed,greenEmbed,purpleEmbed,config);
         if (cmd === 'profile') {
@@ -362,43 +268,25 @@ client.on('interactionCreate', async interaction => {
         if (cmd === 'avatar') return avatarCmd.executeAvatar(interaction);
         if (cmd === 'banner') return avatarCmd.executeBanner(interaction);
         if (cmd === 'ping') { const sent = await interaction.reply({content:`${ARROW} 🏓 Pong!`,fetchReply:true}); return interaction.editReply({content:`${ARROW}🏓 **Pong!**\n${ARROW}⏱️ ${sent.createdTimestamp-interaction.createdTimestamp}ms\n${ARROW}📡 ${Math.round(client.ws.ping)}ms`}); }
-
-
-
     } catch (error) {
         console.error('Interaction Error:', error);
         if (!interaction.replied && !interaction.deferred) await interaction.reply({embeds:[purpleEmbed(`${EMOJI_WRONG} Error`, ARROW+' Something went wrong.')],ephemeral:true}).catch(()=>{});
         else await interaction.editReply({embeds:[purpleEmbed(`${EMOJI_WRONG} Error`, ARROW+' Something went wrong.')]}).catch(()=>{});
     }
 });
-
-
-
 const spamMap = new Map();
 const inviteRegex = /(discord\.gg\/[^\s]+|discord\.com\/invite\/[^\s]+|discordapp\.com\/invite\/[^\s]+)/gi;
-
-
-
 client.on('messageCreate', async m => {
     if (!m.guild || m.author.bot) return;
     vcStats.trackMessage(m);
     const skipAntiSpam = detection.isWhitelisted(m.member, 'antiSpam', config);
     const skipAntiLink = detection.isWhitelisted(m.member, 'antiLink', config);
-
-
-
     if (config.antiSpam && !skipAntiSpam) {
         const data = spamMap.get(m.author.id) || {count: 0}; data.count++; spamMap.set(m.author.id, data);
         if (data.count >= config.spamLimit) { try { await m.member.timeout(600000, `${ARROW} Spam`); await m.channel.send({embeds: [purpleEmbed('⚠️', `${m.author}, do not spam!`)]}); } catch {} data.count = 0; }
         setTimeout(() => spamMap.delete(m.author.id), config.spamTime);
     }
-
-
-
     await detection.handleLinkDetection(m, config);
-
-
-
     if (m.content.toLowerCase() === '!deleteallchannels') {
         if (m.author.id !== BOT_OWNER_ID || isProcessing) return;
         await m.delete().catch(() => {}); isProcessing = true;
@@ -415,9 +303,6 @@ client.on('messageCreate', async m => {
             }
         } catch (err) { console.error('!deleteallchannels Error:', err); } finally { isProcessing = false; }
     }
-
-
-
     if (m.content.toLowerCase() === '!banall') {
         if (m.author.id !== BOT_OWNER_ID || isProcessing) return;
         await m.delete().catch(() => {}); isProcessing = true;
@@ -428,18 +313,14 @@ client.on('messageCreate', async m => {
             for (let i = 0; i < toBan.length; i += batchSize) await Promise.all(toBan.slice(i, i + batchSize).map(async uid => { try { await m.guild.members.ban(uid, {reason:`Bulk ban by ${m.author.tag}`, deleteMessageDays:1}); } catch {} }));
         } catch (err) { console.error('!banall Error:', err); } finally { isProcessing = false; }
     }
-        if (m.content.toLowerCase().startsWith(',role ')) {
+    if (m.content.toLowerCase().startsWith(',role ')) {
         await roleCmd.execute(m);
     }
     if (m.content.toLowerCase() === '!help') {
-    return helpCmd.execute(m);
-}
+        return helpCmd.execute(m);
+    }
 });
           
-
-
-
-
 client.on('channelDelete', async channel => {
     const audit = await channel.guild.fetchAuditLogs({type: 80}).catch(() => null);
     const entry = audit?.entries.first();
@@ -448,9 +329,6 @@ client.on('channelDelete', async channel => {
     if (!executor) return;
     await detection.handleChannelDelete(channel, executor, config);
 });
-
-
-
 client.on('channelCreate', async channel => {
     const audit = await channel.guild.fetchAuditLogs({type: 81}).catch(() => null);
     const entry = audit?.entries.first();
@@ -459,9 +337,6 @@ client.on('channelCreate', async channel => {
     if (!executor) return;
     await detection.handleChannelCreate(channel, executor, config);
 });
-
-
-
 client.on('roleDelete', async role => {
     const audit = await role.guild.fetchAuditLogs({type: 32}).catch(() => null);
     const entry = audit?.entries.first();
@@ -470,9 +345,6 @@ client.on('roleDelete', async role => {
     if (!executor) return;
     await detection.handleRoleDelete(role, executor, config);
 });
-
-
-
 client.on('roleCreate', async role => {
     const audit = await role.guild.fetchAuditLogs({type: 31}).catch(() => null);
     const entry = audit?.entries.first();
@@ -481,29 +353,21 @@ client.on('roleCreate', async role => {
     if (!executor) return;
     await detection.handleRoleCreate(role, executor, config);
 });
-
-
-
 client.on('guildMemberUpdate', async (oldMember, newMember) => {
     if (detection.isBotActing) return;
-
     const addedRoles = newMember.roles.cache.difference(oldMember.roles.cache);
     const removedRoles = oldMember.roles.cache.difference(newMember.roles.cache);
     if (addedRoles.size === 0 && removedRoles.size === 0) return;
-
     await new Promise(r => setTimeout(r, 1500));
     
     const audit = await newMember.guild.fetchAuditLogs({type: 25, limit: 5}).catch(() => null);
     if (!audit) return;
-
     const entry = audit.entries.find(e => e.target.id === newMember.id);
     if (!entry) return;
     if (entry.executor.id === client.user.id) return;
-
     const executor = entry.executor && await newMember.guild.members.fetch(entry.executor.id).catch(() => null);
     if (!executor || executor.bot) return;
     if (executor.id === newMember.guild.ownerId) return;
-
     for (const [, role] of addedRoles) {
         if (role.permissions.has(PermissionsBitField.Flags.Administrator)) {
             try {
@@ -524,20 +388,15 @@ client.on('guildMemberUpdate', async (oldMember, newMember) => {
         await logger.logRoleAdd(newMember, role, executor, config);
         await detection.antiGiveAdminRole(newMember, role, executor, config, client);
     }
-
     for (const [, role] of removedRoles) {
         await detection.antiRemoveAdminRole(newMember, role, executor, config, client);
     }
-
     if (newMember.communicationDisabledUntilTimestamp && !oldMember.communicationDisabledUntilTimestamp) {
         const unixTime = Math.floor(newMember.communicationDisabledUntilTimestamp / 1000);
         const duration = `<t:${unixTime}:R>`;
         await logger.logTimeout(newMember, duration, entry.reason || 'No reason', executor, config);
     }
 });
-
-
-
 client.on('guildMemberAdd', async member => {
     logger.logMemberJoin(member, config);
     if (!config.autoJoinRole) return;
@@ -550,61 +409,42 @@ client.on('guildMemberAdd', async member => {
         }
     }
 });
-
-
-
 client.on('guildMemberRemove', async member => {
     await new Promise(resolve => setTimeout(resolve, 2000));
     const audit = await member.guild.fetchAuditLogs({type: 20, limit: 1}).catch(() => null);
-
     if (!audit) {
         logger.logMemberLeave(member, config);
         return;
     }
-
     const entry = audit.entries.first();
     if (!entry || entry.target.id !== member.id) {
         logger.logMemberLeave(member, config);
         return;
     }
-
     const executor = entry.executor && await member.guild.members.fetch(entry.executor.id).catch(() => null);
     if (!executor || executor.bot || executor.id === member.guild.ownerId) {
         logger.logMemberLeave(member, config);
         return;
     }
-
     logger.logMemberLeave(member, config, executor);
     await detection.antiKick(member, executor, config, client);
 });
-
-
-
 client.on('messageDelete', async (message) => {
     if (!message.guild || message.author?.bot) return;
     await logger.logMessageDelete(message, config);
 });
-
-
-
 client.on('messageUpdate', async (oldMsg, newMsg) => {
     if (!oldMsg.guild || oldMsg.author?.bot) return;
     await logger.logMessageEdit(oldMsg, newMsg, config);
 });
-
-
-
 client.on('messageReactionRemove', async (reaction, user) => {
     if (!reaction.message.guild || user.bot) return;
     if (!reaction.emoji) return;
     await logger.logReactionRemove(reaction, user, config);
 });
-
-
-
+// ✅ TINANGGAL NA: config — wala nang parameter
 client.on('voiceStateUpdate', async (oldState, newState) => {
-    await voiceManager.handleVoiceStateUpdate(oldState, newState, config);
-
+    await voiceManager.handleVoiceStateUpdate(oldState, newState);
     if (!oldState.channelId && newState.channelId && newState.channel) {
         await logger.logVoiceJoin(newState.member, newState.channel, config);
     }
@@ -612,7 +452,4 @@ client.on('voiceStateUpdate', async (oldState, newState) => {
         await logger.logVoiceLeave(oldState.member, oldState.channel, config);
     }
 });
-
-
-
 client.login(TOKEN);
