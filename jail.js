@@ -134,21 +134,32 @@ module.exports = {
 
 
     async releaseUser(member, guild) {
-        // Refresh member to ensure we have current roles and permissions
-        const freshMember = await guild.members.fetch(member.id).catch(() => member);
+    // Siguraduhing sariwa ang impormasyon
+    const freshMember = await guild.members.fetch(member.id, { force: true }).catch(() => member);
+    
+    if (jailedUsers.has(freshMember.id)) {
+        // Kunin ang mga dating role IDs
+        const roleIds = jailedUsers.get(freshMember.id);
+        
+        // ✅ SIGURADUHIN NA TALAGANG UMIKTO LAHAT NG EXISTING ROLES LANG
+        const validRoles = roleIds.filter(id => guild.roles.cache.has(id));
 
-
-        if (jailedUsers.has(freshMember.id)) {
-            const roles = jailedUsers.get(freshMember.id);
-            // Replace roles with original roles. 
-            // Note: roles.set completely replaces the member's roles.
-            await freshMember.roles.set(roles).catch(console.error);
-            jailedUsers.delete(freshMember.id);
-            saveJailData();
-        } else {
-            // If not in map, just remove jail role
+        try {
+            // ✅ IBALIK LAHAT NG TOTOONG ROLES
+            await freshMember.roles.set(validRoles);
+        } catch (err) {
+            console.error('Error restoring roles:', err);
+            // ✅ KUNG MAY ERROR — TANGGALIN MUNA ANG JAIL ROLE BILANG PANGALANG PARAAN
             const jailRole = guild.roles.cache.find(r => r.name === 'Jailed');
-            if (jailRole) await freshMember.roles.remove(jailRole).catch(console.error);
+            if (jailRole) await freshMember.roles.remove(jailRole);
         }
+
+        jailedUsers.delete(freshMember.id);
+        saveJailData();
+    } else {
+        // Kung wala sa listahan — tanggalin lang ang Jail role
+        const jailRole = guild.roles.cache.find(r => r.name === 'Jailed');
+        if (jailRole) await freshMember.roles.remove(jailRole).catch(console.error);
     }
+}
 };
