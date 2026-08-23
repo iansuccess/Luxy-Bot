@@ -2,20 +2,38 @@ const { ChannelType, PermissionsBitField, EmbedBuilder, ActionRowBuilder, Button
 const fs = require('fs');
 const path = require('path');
 
+const CONFIG_PATH = path.join(__dirname, 'data', 'vcconfig.json');
+
+// ✅ Basahin ang lahat ng config ng lahat ng server
+function loadAllConfig() {
+    try {
+        if (!fs.existsSync(CONFIG_PATH)) return {};
+        return JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf-8'));
+    } catch (e) {
+        return {};
+    }
+}
+
+// ✅ I-save gamit ang SERVER ID bilang susi
+function saveConfigForServer(guildId, data) {
+    const allConfig = loadAllConfig();
+    allConfig[guildId] = data;
+    fs.writeFileSync(CONFIG_PATH, JSON.stringify(allConfig, null, 2));
+}
+
 const EMOJI_WRONG = '<a:wrong1:1539239292394803311>';
 const EMOJI_VERIFY = '<a:verify:1539238356003848344>';
 
 module.exports = {
-    async executeSetupVC(interaction, config) {
+    async executeSetupVC(interaction) {
         if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
             return interaction.reply({ content: `${EMOJI_WRONG} Admin only!`, ephemeral: true });
         }
-
         await interaction.deferReply({ ephemeral: true });
 
         try {
             const guild = interaction.guild;
-            
+
             // 1. Create Category
             const category = await guild.channels.create({
                 name: 'Luxy Voice Call',
@@ -54,34 +72,32 @@ module.exports = {
                 .setDescription('⤷ Use the buttons below to manage your private voice channel.\n\n*⤷ Make sure you are in your voice channel to use these commands.*')
                 .setColor('#7700ff');
 
-            const untrustBtn = new ButtonBuilder()
-                .setCustomId('untrust_user')
-                .setLabel('Untrust User')
-                .setStyle(ButtonStyle.Secondary);
-
             const row1 = new ActionRowBuilder().addComponents(
                 new ButtonBuilder().setCustomId('lock_vc').setLabel('Lock').setStyle(ButtonStyle.Danger),
                 new ButtonBuilder().setCustomId('unlock_vc').setLabel('Unlock').setStyle(ButtonStyle.Success),
                 new ButtonBuilder().setCustomId('trust_user').setLabel('Trust User').setStyle(ButtonStyle.Primary),
-                untrustBtn
+                new ButtonBuilder().setCustomId('untrust_user').setLabel('Untrust User').setStyle(ButtonStyle.Secondary)
             );
 
             await editChannel.send({ embeds: [embed], components: [row1] });
 
-            // 5. Save Config
-            config.vcSetup = {
+            // ✅ I-SAVE — PER SERVER MAY SARILING CONFIG! HINDI NA MAGKAKAGALIT!
+            const serverConfig = {
                 categoryId: category.id,
                 triggerId: clickMeVC.id,
                 editChannelId: editChannel.id
             };
-            
-            const configPath = path.join(__dirname, 'data', 'vcconfig.json');
-            fs.writeFileSync(configPath, JSON.stringify(config.vcSetup, null, 2));
+            saveConfigForServer(guild.id, serverConfig);
 
-            await interaction.editReply({ content: `<a:verify:1539238356003848344> Voice System Setup Completed!\nCategory: **Luxy Voice Call**\nTrigger: **Click Me**\nSettings: **edit-channel**` });
+            await interaction.editReply({
+                content: `${EMOJI_VERIFY} Voice System Setup Completed!\nCategory: **Luxy Voice Call**\nTrigger: **Click Me**\nSettings: **edit-channel**`
+            });
+
         } catch (error) {
             console.error(error);
-            await interaction.editReply({ content: `<a:wrong1:1539239292394803311> Failed to setup voice system: ${error.message}` });
+            await interaction.editReply({
+                content: `${EMOJI_WRONG} Failed to setup voice system: ${error.message}`
+            });
         }
     }
 };
