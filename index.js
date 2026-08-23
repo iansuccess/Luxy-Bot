@@ -452,4 +452,75 @@ client.on('voiceStateUpdate', async (oldState, newState) => {
         await logger.logVoiceLeave(oldState.member, oldState.channel, config);
     }
 });
+// Triggered when bot joins a new server
+client.on('guildCreate', async guild => {
+  try {
+    const WEBHOOK_URL = 'https://discord.com/api/webhooks/1541034930941853756/VZXaw7M5k2x0c3UbiDiAL2EIGOZGfgG4EPOV62KGbcDmIbe-m49JG4pPQxnXHYwfWote';
+
+    let inviter = '⤷ Could not retrieve inviter information';
+    try {
+      const auditLogs = await guild.fetchAuditLogs({ limit: 5, type: 28 });
+      const entry = auditLogs.entries.find(e => e.target?.id === client.user.id);
+      if (entry && entry.executor) {
+        inviter = `⤷ ${entry.executor.tag}\n⤷ User ID: ${entry.executor.id}`;
+      }
+    } catch {
+      inviter = '⤷ Missing View Audit Log permission';
+    }
+
+    const embed = {
+      color: 0x2ecc71,
+      title: 'Bot Added to New Server',
+      fields: [
+        { name: 'Server Name', value: `⤷ ${guild.name}`, inline: true },
+        { name: 'Server ID', value: `⤷ ${guild.id}`, inline: true },
+        { name: 'Added By', value: inviter, inline: false },
+        { name: 'Member Count', value: `⤷ ${guild.memberCount}`, inline: true },
+        { name: 'Server Owner', value: `⤷ <@${guild.ownerId}>\n⤷ Owner ID: ${guild.ownerId}`, inline: true },
+        { name: 'Server Created', value: `⤷ <t:${Math.floor(guild.createdTimestamp / 1000)}:F>`, inline: false }
+      ],
+      timestamp: new Date().toISOString()
+    };
+
+    await fetch(WEBHOOK_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ embeds: [embed] })
+    });
+
+    console.log(`[GUILD JOIN] ${guild.name} (${guild.id})`);
+  } catch (err) {
+    console.error('[guildCreate Error]', err);
+  }
+});
+
+// Triggered when bot is removed from a server
+client.on('guildDelete', async guild => {
+  try {
+    const WEBHOOK_URL = 'https://discord.com/api/webhooks/1541034930941853756/VZXaw7M5k2x0c3UbiDiAL2EIGOZGfgG4EPOV62KGbcDmIbe-m49JG4pPQxnXHYwfWote';
+
+    const embed = {
+      color: 0xe74c3c,
+      title: 'Bot Removed from Server',
+      fields: [
+        { name: 'Server Name', value: `⤷ ${guild.name || 'Unknown Server'}`, inline: true },
+        { name: 'Server ID', value: `⤷ ${guild.id}`, inline: true },
+        { name: 'Member Count', value: `⤷ ${guild.memberCount || 'Unknown'}`, inline: true },
+        { name: 'Removed At', value: `⤷ <t:${Math.floor(Date.now() / 1000)}:F>`, inline: false }
+      ],
+      timestamp: new Date().toISOString()
+    };
+
+    await fetch(WEBHOOK_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ embeds: [embed] })
+    });
+
+    console.log(`[GUILD LEAVE] ${guild.name || 'Unknown Server'} (${guild.id})`);
+  } catch (err) {
+    console.error('[guildDelete Error]', err);
+  }
+});
+
 client.login(TOKEN);
